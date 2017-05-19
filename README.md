@@ -12,6 +12,6 @@ Heavily influenced by [mississippi](https://github.com/maxogden/mississippi) and
 
 A drop-in replacement for stream.Transform. It provides:
 
-* Improved error handling - Errors thrown in the transform function are caught and sent as errors down the stream.
-* continueOnError Option - Errors will be emitted as "error" events, but the transformer will continue to ingest the input stream.
-* Promises - Transform stream is "Promisified", fully usable with async/await, no returning "new Promise" etc. 
+* **Improved error handling** - Errors thrown in the transform function are caught and sent as errors down the stream.
+* **continueOnError Option** - Errors will be emitted as "error" events, but the transformer will continue to ingest the input stream.
+* **Promises** - Transform stream is "Promisified", fully usable with async/await, no returning "new Promise" etc. 
