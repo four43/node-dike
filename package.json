@@ -1,0 +1,25 @@
+{
+  "name": "dike",
+  "version": "0.0.0",
+  "description": "A stream control and utility library for modern node.js (>v4)",
+  "main": "dist/src/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com:four43/node-dike.git"
+  },
+  "keywords": [
+    "stream",
+    "control",
+    "pipe",
+    "transform",
+    "error",
+    "error-handling",
+    "concat",
+    "pump"
+  ],
+  "author": "Seth Miller <seth@four43.com>",
+  "license": "MIT"
+}
