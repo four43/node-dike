@@ -1,6 +1,5 @@
 import * as stream from "stream";
 import {Deferred} from "ts-deferred";
-import {unwatchFile} from "fs";
 
 /**
  * Transform
@@ -16,7 +15,6 @@ export default class Transform<T, U> extends stream.Transform implements Promise
 	private source: NodeJS.ReadableStream;
 	
 	private result: Deferred<undefined>;
-	private explicitlyPaused: boolean = false;
 	private errored: false | Error = false;
 	private finished: boolean = false;
 	
@@ -53,12 +51,6 @@ export default class Transform<T, U> extends stream.Transform implements Promise
 		
 		this.on('finish', () => {
 			this.finished = true;
-		});
-		
-		this.on('pipe', () => {
-			if(!this.explicitlyPaused) {
-				this.resume();
-			}
 		});
 		
 		// Re-pipe error handling
