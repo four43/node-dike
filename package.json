@@ -24,7 +24,8 @@
   "license": "MIT",
   "dependencies": {
     "@types/mocha": "^2.2.41",
-    "@types/node": "^7.0.18"
+    "@types/node": "^7.0.18",
+    "ts-deferred": "^1.0.4"
   },
   "devDependencies": {
     "@types/sinon": "^2.2.2",
