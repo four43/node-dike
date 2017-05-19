@@ -6,7 +6,6 @@
     "moduleResolution": "node",
     "outDir": "dist",
     "noImplicitAny": true,
-    "importHelpers": true,
     "lib":["es6", "scripthost", "dom"],
     "skipLibCheck": true
   },
