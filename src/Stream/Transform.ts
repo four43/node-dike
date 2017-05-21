@@ -41,8 +41,6 @@ export default class Transform<T, U> extends stream.Transform implements Promise
 				}
 			}
 		});
-		// Pause so we don't lose data, we will be attaching handlers.
-		//super.pause();
 		
 		// Set these up right away in case our .then, .catch is after our stream is already done.
 		this.on('error', (err) => {
