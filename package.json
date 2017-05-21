@@ -1,9 +1,10 @@
 {
   "name": "dike",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A stream control and utility library for modern node.js (>v4)",
   "main": "dist/src/main.js",
   "scripts": {
+    "build": "rm -rf ./dist; tsc --pretty",
     "test": "mocha --compilers ts:ts-node/register --recursive ./test/spec/**/*Test.ts"
   },
   "repository": {

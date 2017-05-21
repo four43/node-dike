@@ -7,7 +7,8 @@
     "outDir": "dist",
     "noImplicitAny": true,
     "lib":["es6", "scripthost", "dom"],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "declaration": true
   },
   "exclude": [
     "node_modules"
