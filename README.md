@@ -23,7 +23,7 @@ __BUT!__
 
 
 This should be how modern NodeJS streams are used:
-```ecmascript 6
+```javascript
 async () => {
 	try {
 		const readable = fs.createReadStream('./my-big-file.csv');
