@@ -20,7 +20,9 @@ __BUT!__
 * Typings would be nice to make sure you're plugging in things that go together.
 * Async/Await makes JavaScript much nicer, streams should play nice in that environment too.
 * Strange flowing states - `.pause()` gets unpaused automagically with `.pipe()` and `.on('data')` and probably something else. If you explicitly pause a stream with `.pause()`, it should stay paused until you `.resume()` it.
-This should be a thing:
+
+
+This should be how modern NodeJS streams are used:
 ```ecmascript 6
 async () => {
 	try {
