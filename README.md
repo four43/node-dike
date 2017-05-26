@@ -50,7 +50,7 @@ async () => {
 ## dike 
 _(n.) a ditch or watercourse._
 
-A drop-in replacement for modern Node.js streams that provides modern functionality, type safety, and memory management by default. They enhance streams, not override them with basic event emitters with added functionality. It is tested and big data friendly.
+A drop-in replacement for modern Node.js streams that provides modern functionality, type safety, and memory management by default. Dike enhances streams, not override them with basic event emitters with added functionality. It is tested and big data friendly.
 
 
 ### enhance(NodeJS.ReadableStream)
