@@ -18,8 +18,8 @@ So why make another stream library?
 __BUT!__
 * Node streams don't always behave as you would expect.
 * Typings would be nice to make sure you're plugging in things that go together.
-* Async/Await makes JavaScript much nicer, streams should play nice in that environment too.
-* Strange flowing states - `.pause()` gets unpaused automagically with `.pipe()` and `.on('data')` and probably something else. If you explicitly pause a stream with `.pause()`, it should stay paused until you `.resume()` it.
+* `async`/`await` makes JavaScript much nicer, streams should play nice in that environment too.
+* Strange flowing states - `.pause()` gets unpaused automagically with `.pipe()` and `.on('data')` and probably something else. If you explicitly pause a stream with `.halt()`, it will stay paused until you `.continue()` it.
 
 
 This should be how modern NodeJS streams are used:
