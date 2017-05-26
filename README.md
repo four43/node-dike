@@ -14,6 +14,8 @@ So why make another stream library?
 
 * Streams are really powerful - You can do so much with Linux's GNU utilities and pipes.
 * Streams are great for larger data sets and processing bits at a time. Node's built in streams with high watermark functionality is nice.
+
+__BUT!__
 * Node streams don't always behave as you would expect.
 * Typings would be nice to make sure you're plugging in things that go together.
 * Async/Await makes JavaScript much nicer, streams should play nice in that environment too.
