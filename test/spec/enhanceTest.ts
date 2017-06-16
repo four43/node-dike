@@ -14,7 +14,7 @@ describe("enhance", () => {
 	describe("Existing functionality", () => {
 		it("should behave like plain stream sanity check", (done) => {
 			// Read data from a stream
-			const spies = spyOnStream(simplePassThrough)
+			const spies = spyOnStream(simplePassThrough);
 			
 			simplePassThrough.write('Part A');
 			simplePassThrough.write('Part B');
@@ -419,7 +419,7 @@ describe("enhance", () => {
 	
 	describe("Improved Error Handling", () => {
 		
-		it('should plug back into writers', async () => {
+		it('should not plug back into writers (node default behavior)', async () => {
 			
 			let chunkCount = 0;
 			const transformError = new Error(`Stream error!`);
@@ -451,10 +451,55 @@ describe("enhance", () => {
 				await simplePassThrough
 					.pipe(enhance(plainErroringTransform))
 			}
-			catch(err) {
+			catch (err) {
 				assert.strictEqual(txeSpies.error.callCount, 1);
 				assert.strictEqual(txeSpies.data.callCount, 1);
 				assert.strictEqual(txeSpies.data.args[0][0].toString(), 'Part A');
+				assert.strictEqual(txeSpies.end.callCount, 0);
+				assert.strictEqual(txeSpies.finish.callCount, 0);
+				// Node docs are really vague on this one.
+				assert.strictEqual(txeSpies.close.callCount, 0);
+			}
+		});
+		
+		it('should plug back into writers when error handling is enabled', async () => {
+			
+			let chunkCount = 0;
+			const transformError = new Error(`Stream error!`);
+			const plainErroringTransform = new stream.Transform({
+				transform: (chunk: string, encoding, callback) => {
+					chunkCount++;
+					if (chunkCount == 2) {
+						return callback(transformError);
+					}
+					return callback(null, chunk);
+				}
+			});
+			
+			const plainTransform = new stream.Transform({
+				transform: (chunk: string, encoding, callback) => {
+					return callback(null, chunk);
+				}
+			});
+			
+			const txeSpies = spyOnStream(plainErroringTransform);
+			
+			try {
+				simplePassThrough.write('Part A');
+				simplePassThrough.write('Part B');
+				simplePassThrough.write('Part C');
+				simplePassThrough.write('Part D');
+				simplePassThrough.end();
+				
+				await simplePassThrough
+					.pipe(enhance(plainErroringTransform, {continueOnError: true}))
+			}
+			catch (err) {
+				assert.strictEqual(txeSpies.error.callCount, 1);
+				assert.strictEqual(txeSpies.data.callCount, 3);
+				assert.strictEqual(txeSpies.data.args[0][0].toString(), 'Part A');
+				assert.strictEqual(txeSpies.data.args[1][0].toString(), 'Part C');
+				assert.strictEqual(txeSpies.data.args[2][0].toString(), 'Part D');
 				assert.strictEqual(txeSpies.end.callCount, 0);
 				assert.strictEqual(txeSpies.finish.callCount, 0);
 				// Node docs are really vague on this one.

@@ -54,6 +54,7 @@ export default class Transform<T, U> extends stream.Transform implements Promise
 		// Re-pipe error handling
 		if (options.continueOnError) {
 			this.on('pipe', (source: NodeJS.ReadableStream) => {
+				// Something was piped to us
 				this.source = source;
 			});
 			

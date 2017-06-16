@@ -15,7 +15,8 @@ function enhance<T extends NodeJS.ReadableStream | NodeJS.WritableStream>(stream
 	let errored: false | Error = false;
 	let done: boolean = false;
 	
-	let pipeDsts: NodeJS.WritableStream[] = [];
+	let pipeSource: NodeJS.ReadableStream;
+	let pipeDests: NodeJS.WritableStream[] = [];
 	
 	let doneEvent: string;
 	if (isWritable(stream)) {
@@ -60,13 +61,33 @@ function enhance<T extends NodeJS.ReadableStream | NodeJS.WritableStream>(stream
 	stream.on('error', (err: Error) => {
 		// Re-pipe error handling
 		if (options.continueOnError && isReadable(stream)) {
-			pipeDsts.forEach(pipeDst => stream.pipe(pipeDst));
+			pipeDests.forEach(pipeDst => stream.pipe(pipeDst));
 		}
-		else {
+		
+		if(options.continueOnError && isWritable(stream)) {
+			// Who was piped to us?
+			if (pipeSource) {
+				pipeSource.pipe(stream);
+			}
+		}
+		
+		if(!options.continueOnError) {
 			// Reset destinations, errors disconnect pipes
-			pipeDsts = [];
+			pipeDests = [];
 		}
 		errored = err;
+	});
+	
+	stream.on('pipe', (source: NodeJS.ReadableStream) => {
+		// Something was piped to us
+		pipeSource = source;
+		console.log(this);
+	});
+	stream.on('unpipe', (source: NodeJS.ReadableStream) => {
+		// Something was piped to us
+		if(!options.continueOnError) {
+			pipeSource = undefined;
+		}
 	});
 	
 	stream.on(doneEvent, () => {
@@ -83,14 +104,14 @@ function enhance<T extends NodeJS.ReadableStream | NodeJS.WritableStream>(stream
 		
 		const streamPipe = stream.pipe;
 		enhancedStream.pipe = function <U extends NodeJS.WritableStream>(destination: U, options?: { end?: boolean; }): U {
-			pipeDsts.push(destination);
+			pipeDests.push(destination);
 			streamPipe.call(enhancedStream, destination, options);
 			return destination;
 		};
 		
 		const streamUnpipe = stream.unpipe;
 		enhancedStream.unpipe = function <U extends NodeJS.WritableStream>(destination?: U) {
-			pipeDsts = pipeDsts.filter(savedDst => savedDst !== destination);
+			pipeDests = pipeDests.filter(savedDst => savedDst !== destination);
 			streamUnpipe(destination);
 			return this;
 		};
@@ -106,7 +127,7 @@ function isReadable(obj: any): obj is NodeJS.ReadableStream {
 		&& obj.unpipe && obj.unshift && obj.wrap;
 }
 
-function isWritable(obj: any): obj is NodeJS.ReadableStream {
+function isWritable(obj: any): obj is NodeJS.WritableStream {
 	return obj != null
 		&& obj.on
 		&& obj.write
