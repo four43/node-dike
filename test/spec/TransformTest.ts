@@ -308,11 +308,15 @@ describe("Transform", () => {
 			const transform = new Transform({
 				continueOnError: true,
 				transform: (chunk, encoding, callback) => {
-					chunkCount++;
-					if (chunkCount == 2) {
-						return callback(transformError);
-					}
-					return callback(null, chunk);
+					setTimeout(() => {
+						chunkCount++;
+						if (chunkCount == 2) {
+							console.log(`Callback error`);
+							return callback(transformError);
+						}
+						console.log(`Callback chunk ${chunk}`);
+						return callback(null, chunk);
+					}, 1);
 				}
 			});
 			
@@ -351,6 +355,55 @@ describe("Transform", () => {
 					done(err);
 				}
 			}, 20);
+		});
+		
+		it("should continue on error (async)", async () => {
+			// Transform stream that errors on the 2nd entry in our stream.
+			let chunkCount = 0;
+			const transformError = new Error(`Stream error!`);
+			const transform = new Transform({
+				continueOnError: true,
+				transform: async (chunk, encoding) => {
+					chunkCount++;
+					if (chunkCount == 2) {
+						console.log(`Throwing error`);
+						throw transformError;
+					}
+					console.log(`Sending chunk ${chunk}`);
+					return chunk;
+				}
+			});
+			
+			const errSpy = sinon.spy();
+			const dataSpy = sinon.spy();
+			const endSpy = sinon.spy();
+			const finishSpy = sinon.spy();
+			const closeSpy = sinon.spy();
+			
+			const pipeline = input
+				.pipe(transform)
+				.on('error', errSpy)
+				.on('data', dataSpy)
+				.on('end', endSpy)
+				.on('finish', finishSpy)
+				.on('close', closeSpy);
+			
+			input.write('Part A');
+			input.write('Part B');
+			input.write('Part C');
+			input.write('Part D');
+			input.end();
+			
+			await pipeline;
+			
+			assert.strictEqual(errSpy.callCount, 1);
+			assert.strictEqual(errSpy.args[0][0], transformError);
+			assert.strictEqual(dataSpy.callCount, 3);
+			assert.strictEqual(dataSpy.args[0][0].toString(), 'Part A');
+			assert.strictEqual(dataSpy.args[2][0].toString(), 'Part D');
+			assert.strictEqual(finishSpy.callCount, 1);
+			assert.strictEqual(endSpy.callCount, 0);
+			assert.strictEqual(closeSpy.callCount, 0);
 		});
 		
 		it("should continue on error in object mode", (done) => {
@@ -420,7 +473,7 @@ describe("Transform", () => {
 				transform: (chunk, encoding) => {
 					return new Promise((resolve) => {
 						setTimeout(() =>
-								resolve(`Transformed: ${chunk.toString()}`), 
+								resolve(`Transformed: ${chunk.toString()}`),
 							10);
 					});
 				}

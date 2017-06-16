@@ -7,6 +7,10 @@ import {Deferred} from "ts-deferred";
  */
 function enhance<T extends NodeJS.ReadableStream | NodeJS.WritableStream>(stream: T, options?: IEnhanceOptions):T & Promise<void> {
 	
+	if(stream && (<any>stream)._transform) {
+		console.warn("If you're looking to enhance a transform stream, use `dike.Transform` - this will give you more consistent functionality");
+	}
+	
 	options = {
 		...options
 	};

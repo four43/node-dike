@@ -21,24 +21,46 @@ export default class Transform<T, U> extends stream.Transform implements Promise
 	constructor(public options?: ITransformOptions<T, U>) {
 		super({
 			...options,
-			transform: async (chunk, encoding, callback) => {
-				try {
-					const transformResult = options.transform(chunk as any as T, encoding, (err, result) => {
-						(err) ? callback(err) : callback(null, result);
-					});
-					if (transformResult instanceof Promise) {
-						transformResult
-							.then((result) =>
-								callback(null, result)
-							)
-							.catch((err) =>
-								callback(err)
-							);
+			transform: (chunk, encoding, callback) => {
+					try {
+						const transformResult = options.transform(
+							chunk as any as T,
+							encoding,
+							(err, result) => {
+								if (err) {
+									if (options.continueOnError) {
+										// Running callback(err) destroys input buffers and we can't recover.
+										this.emit('error', err);
+										callback();
+									}
+									else {
+										callback(err)
+									}
+								}
+								else {
+									callback(null, result);
+								}
+							});
+						if (transformResult instanceof Promise) {
+							transformResult
+								.then((result) => {
+									callback(null, result);
+								})
+								.catch((err) => {
+									if (options.continueOnError) {
+										// Running callback(err) destroys input buffers and we can't recover.
+										this.emit('error', err);
+										callback();
+									}
+									else {
+										callback(err);
+									}
+								});
+						}
 					}
-				}
-				catch (err) {
-					callback(err);
-				}
+					catch (err) {
+						callback(err);
+					}
 			}
 		});
 		
@@ -51,7 +73,7 @@ export default class Transform<T, U> extends stream.Transform implements Promise
 			this.finished = true;
 		});
 		
-		// Re-pipe error handling
+		// Re-pipe error handling, this.emit('error', ...) still unpipes us.
 		if (options.continueOnError) {
 			this.on('pipe', (source: NodeJS.ReadableStream) => {
 				// Something was piped to us
