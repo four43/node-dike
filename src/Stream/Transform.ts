@@ -17,6 +17,7 @@ export default class Transform<T, U> extends stream.Transform implements Promise
 	private result: Deferred<undefined>;
 	private errored: false | Error = false;
 	private finished: boolean = false;
+	private flushed: boolean = false;
 	
 	constructor(public options?: ITransformOptions<T, U>) {
 		super({
@@ -61,6 +62,58 @@ export default class Transform<T, U> extends stream.Transform implements Promise
 					catch (err) {
 						callback(err);
 					}
+			},
+			flush: (callback) => {
+				try {
+					if(options.flush) {
+						const flushResult = options.flush(
+							(err, result) => {
+								if (err) {
+									if (options.continueOnError) {
+										// Running callback(err) destroys input buffers and we can't recover.
+										this.emit('error', err);
+										callback();
+									}
+									else {
+										callback(err)
+									}
+								}
+								else {
+									this.push(result);
+									callback();
+								}
+								this.flushDone();
+							});
+						if (flushResult instanceof Promise) {
+							flushResult
+								.then((result) => {
+									this.push(result);
+									callback();
+									this.flushDone();
+								})
+								.catch((err) => {
+									if (options.continueOnError) {
+										// Running callback(err) destroys input buffers and we can't recover.
+										this.emit('error', err);
+										callback();
+									}
+									else {
+										callback(err);
+									}
+									this.flushDone();
+								});
+						}
+					}
+					else {
+						// No flush handler registered, just run callback.
+						callback();
+						this.flushed = true;
+					}
+				}
+				catch (err) {
+					callback(err);
+					this.flushDone();
+				}
 			}
 		});
 		
@@ -88,6 +141,17 @@ export default class Transform<T, U> extends stream.Transform implements Promise
 		}
 	}
 	
+	emit(event:string, ...args: any[]): boolean {
+		console.log(`Event: ${event}, finished: ${this.finished}, flushed: ${this.flushed}`);
+		if(event === 'finish' && this.flushed === false) {
+			// Wait for things to finish
+			return false;
+		}
+		else {
+			return super.emit(event, ...args);
+		}
+	}
+	
 	
 	then(onfulfilled?: ((value: undefined) => undefined | Promise<undefined>) | undefined | null,
 	     onrejected?: ((reason: any) => U | PromiseLike<U>) | undefined | null): Promise<undefined> {
@@ -102,6 +166,15 @@ export default class Transform<T, U> extends stream.Transform implements Promise
 		this.setupPromise();
 		
 		return this.result.promise.catch(onrejected);
+	}
+	
+	fork(...writableStreams:NodeJS.WritableStream[]) {
+		const wasPaused = this.isPaused();
+		this.pause();
+		writableStreams.forEach(writableStream => this.pipe(writableStream));
+		if(!wasPaused) {
+			this.resume();
+		}
 	}
 	
 	private setupPromise() {
@@ -128,9 +201,15 @@ export default class Transform<T, U> extends stream.Transform implements Promise
 			}
 		}
 	}
+	
+	private flushDone() {
+		this.flushed = true;
+		this.emit('finish');
+	}
 }
 
 export interface ITransformOptions<T, U> extends stream.TransformOptions {
 	continueOnError?: boolean,
 	transform: (chunk: T | string | Buffer, encoding: string, callback?: (error: Error | null, result?: U) => void) => Promise<U> | void;
+	flush?: (callback?: (error: Error | null, result?: U) => void) => Promise<U> | void;
 }

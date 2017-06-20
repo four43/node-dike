@@ -2,6 +2,7 @@ import * as stream from "stream";
 import * as sinon from "sinon";
 import * as assert from "assert";
 import enhance from "../../src/Stream/enhance";
+import spyOnStream from "../util/spyOnStreams";
 
 let simplePassThrough: stream.PassThrough;
 
@@ -582,26 +583,3 @@ describe("enhance", () => {
 		});
 	});
 });
-
-function spyOnStream(stream: NodeJS.ReadableStream | NodeJS.WritableStream, options?: { spyOnData: boolean }) {
-	options = {
-		spyOnData: true,
-		...options
-	};
-	
-	const spies = {
-		error: sinon.spy(),
-		data: sinon.spy(),
-		end: sinon.spy(),
-		finish: sinon.spy(),
-		close: sinon.spy()
-	};
-	
-	stream.on('error', spies.error)
-		.on('data', spies.data)
-		.on('end', spies.end)
-		.on('finish', spies.finish)
-		.on('close', spies.close);
-	
-	return spies;
-}
