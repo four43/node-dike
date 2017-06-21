@@ -142,7 +142,6 @@ export default class Transform<T, U> extends stream.Transform implements Promise
 	}
 	
 	emit(event:string, ...args: any[]): boolean {
-		console.log(`Event: ${event}, finished: ${this.finished}, flushed: ${this.flushed}`);
 		if(event === 'finish' && this.flushed === false) {
 			// Wait for things to finish
 			return false;
@@ -168,12 +167,46 @@ export default class Transform<T, U> extends stream.Transform implements Promise
 		return this.result.promise.catch(onrejected);
 	}
 	
-	fork(...writableStreams:NodeJS.WritableStream[]) {
+	fork(...writableStreams:NodeJS.WritableStream[]): Promise<undefined> {
 		const wasPaused = this.isPaused();
 		this.pause();
 		writableStreams.forEach(writableStream => this.pipe(writableStream));
 		if(!wasPaused) {
 			this.resume();
+		}
+		
+		return {
+			[Symbol.toStringTag]: 'Promise',
+			then: (onfulfilled?: ((value: undefined) => undefined | Promise<undefined>) | undefined | null,
+			       onrejected?: ((reason: any) => U | PromiseLike<U>) | undefined | null): Promise<undefined> => {
+				
+				const writablePromises = writableStreams.map(writableStream => {
+					if(writableStream instanceof Promise) {
+						return writableStream;
+					}
+					else {
+						return new Promise((res, rej) => {
+							writableStream.on('finish', res);
+							writableStream.on('error', rej);
+						})
+					}
+				});
+				return Promise.all(writablePromises).then(onfulfilled, onrejected);
+			},
+			catch: (onrejected?: ((reason: any) => undefined | Promise<undefined>) | undefined | null): Promise<undefined> => {
+				const writablePromises = writableStreams.map(writableStream => {
+					if(writableStream instanceof Promise) {
+						return writableStream;
+					}
+					else {
+						return new Promise((res, rej) => {
+							writableStream.on('finish', res);
+							writableStream.on('error', rej);
+						})
+					}
+				});
+				return Promise.all(writablePromises).catch(onrejected);
+			}
 		}
 	}
 	
