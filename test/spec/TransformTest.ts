@@ -805,7 +805,7 @@ describe("Transform", () => {
 			transform.end();
 		});
 		
-		it("should fork into 2 streams after data is written", (done) => {
+		it("should fork into 2 streams after data is written", async () => {
 			
 			// Transform stream that errors on the 2nd entry in our stream.
 			const transform = new Transform<Buffer, string>({
@@ -831,40 +831,32 @@ describe("Transform", () => {
 			transform.write('Part D');
 			transform.end();
 			
-			transform.fork(receiver0, receiver1);
+			await transform.fork(receiver0, receiver1);
 			
-			setTimeout(() => {
-				try {
-					assert.strictEqual(originSpies.error.callCount, 0);
-					assert.strictEqual(originSpies.end.callCount, 1);
-					assert.strictEqual(originSpies.finish.callCount, 1);
-					// Node docs are really vague on this one.
-					assert.strictEqual(originSpies.close.callCount, 0);
-					
-					assert.strictEqual(receiver0Spies.error.callCount, 0);
-					assert.strictEqual(receiver0Spies.data.callCount, 4);
-					assert.strictEqual(receiver0Spies.data.args[0][0].toString(), 'Transformed: Part A');
-					assert.strictEqual(receiver0Spies.data.args[3][0].toString(), 'Transformed: Part D');
-					assert.strictEqual(receiver0Spies.end.callCount, 1);
-					assert.strictEqual(receiver0Spies.finish.callCount, 1);
-					// Node docs are really vague on this one.
-					assert.strictEqual(receiver0Spies.close.callCount, 0);
-					
-					assert.strictEqual(receiver1Spies.error.callCount, 0);
-					assert.strictEqual(receiver1Spies.data.callCount, 4);
-					assert.strictEqual(receiver1Spies.data.args[0][0].toString(), 'Transformed: Part A');
-					assert.strictEqual(receiver1Spies.data.args[3][0].toString(), 'Transformed: Part D');
-					assert.strictEqual(receiver1Spies.end.callCount, 1);
-					assert.strictEqual(receiver1Spies.finish.callCount, 1);
-					// Node docs are really vague on this one.
-					assert.strictEqual(receiver1Spies.close.callCount, 0);
-					done();
-				}
-				catch (err) {
-					done(err);
-				}
-				
-			}, 100);
+			assert.strictEqual(originSpies.error.callCount, 0);
+			assert.strictEqual(originSpies.end.callCount, 1);
+			assert.strictEqual(originSpies.finish.callCount, 1);
+			// Node docs are really vague on this one.
+			assert.strictEqual(originSpies.close.callCount, 0);
+			
+			assert.strictEqual(receiver0Spies.error.callCount, 0);
+			assert.strictEqual(receiver0Spies.data.callCount, 4);
+			assert.strictEqual(receiver0Spies.data.args[0][0].toString(), 'Transformed: Part A');
+			assert.strictEqual(receiver0Spies.data.args[3][0].toString(), 'Transformed: Part D');
+			assert.strictEqual(receiver0Spies.end.callCount, 1);
+			assert.strictEqual(receiver0Spies.finish.callCount, 1);
+			// Node docs are really vague on this one.
+			assert.strictEqual(receiver0Spies.close.callCount, 0);
+			
+			assert.strictEqual(receiver1Spies.error.callCount, 0);
+			assert.strictEqual(receiver1Spies.data.callCount, 4);
+			assert.strictEqual(receiver1Spies.data.args[0][0].toString(), 'Transformed: Part A');
+			assert.strictEqual(receiver1Spies.data.args[3][0].toString(), 'Transformed: Part D');
+			assert.strictEqual(receiver1Spies.end.callCount, 1);
+			assert.strictEqual(receiver1Spies.finish.callCount, 1);
+			// Node docs are really vague on this one.
+			assert.strictEqual(receiver1Spies.close.callCount, 0);
+			
 		});
 		
 	})
