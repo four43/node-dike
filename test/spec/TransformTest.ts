@@ -859,6 +859,75 @@ describe("Transform", () => {
 			
 		});
 		
+		it("should fork into 2 other transforms after data is written", async () => {
+			
+			// Transform stream that errors on the 2nd entry in our stream.
+			const transform = new Transform<Buffer, string>({
+				transform: (chunk, encoding) => {
+					return new Promise((resolve) => {
+						setTimeout(() =>
+								resolve(`Transformed: ${chunk.toString()}`),
+							1);
+					});
+				}
+			});
+			
+			const transformA = new Transform<Buffer, string>({
+				transform: (chunk, encoding) => {
+					return new Promise((resolve) => {
+						setTimeout(() =>
+								resolve(`TransformedA: ${chunk.toString()}`),
+							1);
+					});
+				}
+			});
+			
+			const transformB = new Transform<Buffer, string>({
+				transform: (chunk, encoding) => {
+					return new Promise((resolve) => {
+						setTimeout(() =>
+								resolve(`TransformedB: ${chunk.toString()}`),
+							1);
+					});
+				}
+			});
+			
+			const originSpies = spyOnStream(transform, {spyOnData: false});
+			const receiver0Spies = spyOnStream(transformA);
+			const receiver1Spies = spyOnStream(transformB);
+			
+			transform.write('Part A');
+			transform.write('Part B');
+			transform.write('Part C');
+			transform.write('Part D');
+			transform.end();
+			
+			await transform.fork(transformA, transformB);
+			
+			assert.strictEqual(originSpies.error.callCount, 0);
+			assert.strictEqual(originSpies.end.callCount, 1);
+			assert.strictEqual(originSpies.finish.callCount, 1);
+			// Node docs are really vague on this one.
+			assert.strictEqual(originSpies.close.callCount, 0);
+			
+			assert.strictEqual(receiver0Spies.error.callCount, 0);
+			assert.strictEqual(receiver0Spies.data.callCount, 4);
+			assert.strictEqual(receiver0Spies.data.args[0][0].toString(), 'TransformedA: Transformed: Part A');
+			assert.strictEqual(receiver0Spies.data.args[3][0].toString(), 'TransformedA: Transformed: Part D');
+			assert.strictEqual(receiver0Spies.finish.callCount, 1);
+			// Node docs are really vague on this one.
+			assert.strictEqual(receiver0Spies.close.callCount, 0);
+			
+			assert.strictEqual(receiver1Spies.error.callCount, 0);
+			assert.strictEqual(receiver1Spies.data.callCount, 4);
+			assert.strictEqual(receiver1Spies.data.args[0][0].toString(), 'TransformedB: Transformed: Part A');
+			assert.strictEqual(receiver1Spies.data.args[3][0].toString(), 'TransformedB: Transformed: Part D');
+			assert.strictEqual(receiver1Spies.finish.callCount, 1);
+			// Node docs are really vague on this one.
+			assert.strictEqual(receiver1Spies.close.callCount, 0);
+			
+		});
+		
 	})
 	
 });
