@@ -251,8 +251,11 @@ export default class Transform<T, U> extends stream.Transform implements IEnhanc
 	}
 }
 
-export interface ITransformOptions<T, U> extends stream.TransformOptions {
+export interface ITransformOptions<T, U> {
+	allowHalfOpen?: boolean;
+	readableObjectMode?: boolean;
+	writableObjectMode?: boolean;
 	continueOnError?: boolean,
-	transform: (chunk: T | string | Buffer, encoding: string, callback?: (error: Error | null, result?: U) => void) => Promise<U> | void;
+	transform: (chunk: T, encoding: string, callback?: (error: Error | null, result?: U) => void) => Promise<U> | void;
 	flush?: (callback?: (error: Error | null, result?: U) => void) => Promise<U> | void;
 }
