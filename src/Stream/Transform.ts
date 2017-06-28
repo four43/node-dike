@@ -20,53 +20,54 @@ export default class Transform<T, U> extends stream.Transform implements IEnhanc
 	private finished: boolean = false;
 	private flushed: boolean = false;
 	
-	constructor(public options?: ITransformOptions<T, U>) {
+	constructor(public options: ITransformOptions<T, U>) {
 		super({
-			...options,
+			readableObjectMode: options.readableObjectMode,
+			writableObjectMode: options.writableObjectMode,
 			transform: (chunk, encoding, callback) => {
-					try {
-						const transformResult = options.transform(
-							chunk as any as T,
-							encoding,
-							(err, result) => {
-								if (err) {
-									if (options.continueOnError) {
-										// Running callback(err) destroys input buffers and we can't recover.
-										this.emit('error', err);
-										callback();
-									}
-									else {
-										callback(err)
-									}
+				try {
+					const transformResult = options.transform(
+						chunk as any as T,
+						encoding,
+						(err, result) => {
+							if (err) {
+								if (options.continueOnError) {
+									// Running callback(err) destroys input buffers and we can't recover.
+									this.emit('error', err);
+									callback();
 								}
 								else {
-									callback(null, result);
+									callback(err)
+								}
+							}
+							else {
+								callback(null, result);
+							}
+						});
+					if (transformResult instanceof Promise) {
+						transformResult
+							.then((result) => {
+								callback(null, result);
+							})
+							.catch((err) => {
+								if (options.continueOnError) {
+									// Running callback(err) destroys input buffers and we can't recover.
+									this.emit('error', err);
+									callback();
+								}
+								else {
+									callback(err);
 								}
 							});
-						if (transformResult instanceof Promise) {
-							transformResult
-								.then((result) => {
-									callback(null, result);
-								})
-								.catch((err) => {
-									if (options.continueOnError) {
-										// Running callback(err) destroys input buffers and we can't recover.
-										this.emit('error', err);
-										callback();
-									}
-									else {
-										callback(err);
-									}
-								});
-						}
 					}
-					catch (err) {
-						callback(err);
-					}
+				}
+				catch (err) {
+					callback(err);
+				}
 			},
 			flush: (callback) => {
 				try {
-					if(options.flush) {
+					if (options.flush) {
 						const flushResult = options.flush(
 							(err, result) => {
 								if (err) {
@@ -142,8 +143,8 @@ export default class Transform<T, U> extends stream.Transform implements IEnhanc
 		}
 	}
 	
-	emit(event:string, ...args: any[]): boolean {
-		if(event === 'finish' && this.flushed === false) {
+	emit(event: string, ...args: any[]): boolean {
+		if (event === 'finish' && this.flushed === false) {
 			// Wait for things to finish
 			return false;
 		}
@@ -153,36 +154,35 @@ export default class Transform<T, U> extends stream.Transform implements IEnhanc
 	}
 	
 	
-	then(onfulfilled?: ((value: undefined) => undefined | Promise<undefined>) | undefined | null,
-	     onrejected?: ((reason: any) => U | PromiseLike<U>) | undefined | null): Promise<undefined> {
+	then<SuccessResult = undefined, ErrorResult = never>(onfulfilled?: ((value: undefined) => SuccessResult | PromiseLike<SuccessResult>) | undefined | null,
+	                                                     onrejected?: ((reason: any) => ErrorResult | PromiseLike<ErrorResult>) | undefined | null): Promise<SuccessResult | ErrorResult> {
 		
 		this.setupPromise();
 		
 		return this.result.promise.then(onfulfilled, onrejected);
 	}
 	
-	catch(onrejected?: ((reason: any) => undefined | Promise<undefined>) | undefined | null): Promise<undefined> {
+	catch<ErrorResult = never>(onrejected?: ((reason: any) => ErrorResult | Promise<ErrorResult>) | undefined | null): Promise<ErrorResult> {
 		
 		this.setupPromise();
 		
 		return this.result.promise.catch(onrejected);
 	}
 	
-	fork(...writableStreams:NodeJS.WritableStream[]): Promise<undefined> {
+	fork(...writableStreams: NodeJS.WritableStream[]): Promise<undefined> {
 		const wasPaused = this.isPaused();
 		this.pause();
 		writableStreams.forEach(writableStream => this.pipe(writableStream));
-		if(!wasPaused) {
+		if (!wasPaused) {
 			this.resume();
 		}
 		
 		return {
 			[Symbol.toStringTag]: 'Promise',
-			then: (onfulfilled?: ((value: undefined) => undefined | Promise<undefined>) | undefined | null,
-			       onrejected?: ((reason: any) => U | PromiseLike<U>) | undefined | null): Promise<undefined> => {
-				
+			then: <SuccessResult, ErrorResult = never>(onfulfilled?: ((value: undefined) => SuccessResult | PromiseLike<SuccessResult>) | undefined | null,
+			                                   onrejected?: ((reason: any) => ErrorResult | PromiseLike<ErrorResult>) | undefined | null): Promise<SuccessResult | ErrorResult> => {
 				const writablePromises = writableStreams.map(writableStream => {
-					if(writableStream instanceof Promise) {
+					if (writableStream instanceof Promise) {
 						return writableStream;
 					}
 					else {
@@ -194,9 +194,10 @@ export default class Transform<T, U> extends stream.Transform implements IEnhanc
 				});
 				return Promise.all(writablePromises).then(onfulfilled, onrejected);
 			},
-			catch: (onrejected?: ((reason: any) => undefined | Promise<undefined>) | undefined | null): Promise<undefined> => {
+			
+			catch: <ErrorResult = never>(onrejected?: ((reason: any) => ErrorResult | PromiseLike<ErrorResult>) | undefined | null): Promise<ErrorResult | never> => {
 				const writablePromises = writableStreams.map(writableStream => {
-					if(writableStream instanceof Promise) {
+					if (writableStream instanceof Promise) {
 						return writableStream;
 					}
 					else {
@@ -206,7 +207,15 @@ export default class Transform<T, U> extends stream.Transform implements IEnhanc
 						})
 					}
 				});
-				return Promise.all(writablePromises).catch(onrejected);
+				
+				return new Promise((resolve, reject) => {
+					Promise.all(writablePromises)
+						.catch((err) => {
+							onrejected(err);
+							reject(err);
+						});
+				})
+				
 			}
 		}
 	}
