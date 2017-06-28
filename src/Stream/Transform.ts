@@ -256,6 +256,6 @@ export interface ITransformOptions<T, U> {
 	readableObjectMode?: boolean;
 	writableObjectMode?: boolean;
 	continueOnError?: boolean,
-	transform: (chunk: T, encoding: string, callback?: (error: Error | null, result?: U) => void) => Promise<U> | void;
+	transform: (chunk: T, encoding?: string, callback?: (error: Error | null, result?: U) => void) => Promise<U> | void;
 	flush?: (callback?: (error: Error | null, result?: U) => void) => Promise<U> | void;
 }
