@@ -1,6 +1,6 @@
 import * as stream from "stream";
 import {Deferred} from "ts-deferred";
-import {IEnhancedTransformSteam} from "../main";
+import {IEnhancedTransformStream} from "../main";
 
 /**
  * Transform
@@ -10,7 +10,7 @@ import {IEnhancedTransformSteam} from "../main";
  * * continueOnError option that allow the stream to keep flowing through a pipe after an error is emitted.
  * * Promisified has promise methods so you can directly attach to a stream and handle done states in a chain.
  */
-export default class Transform<T, U> extends stream.Transform implements IEnhancedTransformSteam {
+export default class Transform<T, U> extends stream.Transform implements IEnhancedTransformStream {
 	
 	[Symbol.toStringTag]: 'Promise';
 	private source: NodeJS.ReadableStream;
