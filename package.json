@@ -6,7 +6,7 @@
   "typings": "dist/src/main",
   "scripts": {
     "build": "rm -rf ./dist; tsc --pretty",
-    "test": "mocha --compilers ts:ts-node/register --recursive ./test/spec/**/*Test.ts",
+    "test": "mocha --compilers ts:ts-node/register --recursive ./test/spec/*",
     "prepublishOnly": "npm run build && npm run test"
   },
   "repository": {

@@ -245,6 +245,51 @@ describe("Transform", () => {
 			}, 20)
 		})
 		
+		it("should behave like a normal transform using callback", (done) => {
+			input = new stream.PassThrough({
+				readableObjectMode: true,
+				writableObjectMode: true,
+			});
+
+			// Create a double sender
+			const transform = new Transform({
+				readableObjectMode: true,
+				writableObjectMode: true,
+				transform: function (chunk, encoding, callback) {
+					this.push(chunk);
+					this.push(chunk);
+					callback(null);
+				}
+			});
+			
+			const errSpy = sinon.spy();
+			const dataSpy = sinon.spy();
+			input
+				.pipe(transform)
+				.on('error', errSpy)
+				.on('data', dataSpy);
+			
+			input.write({key: 'A', value: 'Hello'});
+			input.write({key: 'B', value: 'World'});
+			input.write({key: 'C', value: 'Nice'});
+			input.write({key: 'D', value: 'Day'});
+			input.end();
+			
+			setTimeout(() => {
+				try {
+					assert.strictEqual(dataSpy.callCount, 8);
+					assert.deepEqual(dataSpy.args[0][0], {key: 'A', value: 'Hello'});
+					assert.deepEqual(dataSpy.args[1][0], {key: 'A', value: 'Hello'});
+					assert.deepEqual(dataSpy.args[7][0], {key: 'D', value: 'Day'});
+					assert.strictEqual(errSpy.callCount, 0);
+					done();
+				}
+				catch (err) {
+					done(err);
+				}
+			}, 100)
+		})
+		
 	});
 	
 	describe("Improved Error Handling", () => {
@@ -700,22 +745,22 @@ describe("Transform", () => {
 			});
 		});
 		
-		describe("flush", () =>  {
-			it("should use a promisified flush", async() => {
+		describe("flush", () => {
+			it("should use a promisified flush", async () => {
 				// Transform stream that errors on the 2nd entry in our stream.
 				const transform = new Transform<Buffer, string>({
 					transform: async (chunk, encoding) => {
 						await wait(10);
 						return `Transformed: ${chunk.toString()}`;
 					},
-					flush: async() => {
+					flush: async () => {
 						await wait();
 						return 'done!';
 					}
 				});
 				
 				const txeSpies = spyOnStream(transform);
-
+				
 				const pipeResult = input
 					.pipe(transform);
 				

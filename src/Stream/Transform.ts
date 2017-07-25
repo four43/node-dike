@@ -26,10 +26,11 @@ export default class Transform<T, U> extends stream.Transform implements IEnhanc
 			writableObjectMode: options.writableObjectMode,
 			transform: (chunk, encoding, callback) => {
 				try {
-					const transformResult = options.transform(
+					const transformer = options.transform.bind(this);
+					const transformResult = transformer(
 						chunk as any as T,
 						encoding,
-						(err, result) => {
+						(err?:Error, result?:U) => {
 							if (err) {
 								if (options.continueOnError) {
 									// Running callback(err) destroys input buffers and we can't recover.
